@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, LayoutDashboard, Lock, Plus, Search, UsersRound } from "lucide-react";
+import { ChevronDown, LayoutDashboard, Lock, LogOut, Plus, Search, Settings, UsersRound } from "lucide-react";
 
-import { createProjectAction, createTeamSpaceAction } from "@/app/actions";
+import { createProjectAction, createTeamSpaceAction, signOutAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -45,7 +46,14 @@ type TeamSpace = {
   }[];
 };
 
-export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
+type CurrentUser = {
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  role: string;
+};
+
+export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[]; currentUser: CurrentUser }) {
   const pathname = usePathname();
   const [showCreateSpace, setShowCreateSpace] = useState(false);
   const [actionMenuSpaceId, setActionMenuSpaceId] = useState<string | null>(null);
@@ -55,12 +63,15 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
   const [showTeamSpaceDropdown, setShowTeamSpaceDropdown] = useState(false);
   const [makeProjectPrivate, setMakeProjectPrivate] = useState(false);
   const [showSharePopover, setShowSharePopover] = useState(false);
+  const [showSettingsPopover, setShowSettingsPopover] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [sharedUserIds, setSharedUserIds] = useState<string[]>([]);
   const actionMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const actionMenuPopoverRef = useRef<HTMLDivElement | null>(null);
   const sharePopoverButtonRef = useRef<HTMLButtonElement | null>(null);
   const sharePopoverRef = useRef<HTMLDivElement | null>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const settingsPopoverRef = useRef<HTMLDivElement | null>(null);
 
   const selectedProjectSpace = teamSpaces.find((space) => space.id === projectTeamSpaceId);
   const filteredTeamSpaces = teamSpaces.filter((space) =>
@@ -70,6 +81,16 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
   const filteredMembers = availableMembers.filter((member) =>
     member.email.toLowerCase().includes(memberSearch.toLowerCase()),
   );
+  const fullName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ").trim();
+  const displayName = fullName || currentUser.email.split("@")[0] || "User";
+  const initials =
+    fullName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || currentUser.email.slice(0, 2).toUpperCase();
+  const roleLabel = currentUser.role.charAt(0) + currentUser.role.slice(1).toLowerCase();
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -92,6 +113,15 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
       ) {
         setShowSharePopover(false);
       }
+
+      if (
+        showSettingsPopover &&
+        settingsPopoverRef.current &&
+        !settingsPopoverRef.current.contains(target) &&
+        !settingsButtonRef.current?.contains(target)
+      ) {
+        setShowSettingsPopover(false);
+      }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -106,6 +136,10 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
       if (showSharePopover) {
         setShowSharePopover(false);
       }
+
+      if (showSettingsPopover) {
+        setShowSettingsPopover(false);
+      }
     }
 
     document.addEventListener("mousedown", handlePointerDown);
@@ -115,7 +149,7 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [actionMenuSpaceId, showSharePopover]);
+  }, [actionMenuSpaceId, showSharePopover, showSettingsPopover]);
 
   return (
     <>
@@ -241,6 +275,58 @@ export function AppSidebar({ teamSpaces }: { teamSpaces: TeamSpace[] }) {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+
+        <SidebarFooter className="mt-auto border-t border-sidebar-border px-3 py-3">
+          <div className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5">
+            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-semibold text-sidebar-foreground">
+              {initials}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">{displayName}</p>
+              <p className="truncate text-xs text-sidebar-foreground/60">{roleLabel}</p>
+            </div>
+            <div className="relative">
+              <button
+                ref={settingsButtonRef}
+                type="button"
+                aria-label="Open settings"
+                onClick={() => setShowSettingsPopover((prev) => !prev)}
+                className="inline-flex size-7 items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                <Settings className="size-4" />
+              </button>
+
+              {showSettingsPopover ? (
+                <div
+                  ref={settingsPopoverRef}
+                  className="absolute bottom-9 right-0 z-30 min-w-40 rounded-md border border-sidebar-border bg-popover p-1 shadow-md"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setShowSettingsPopover(false)}
+                    className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  >
+                    Profile Settings
+                  </button>
+                  <form
+                    action={async () => {
+                      setShowSettingsPopover(false);
+                      await signOutAction();
+                    }}
+                  >
+                    <button
+                      type="submit"
+                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <LogOut className="size-4" />
+                      Log Out
+                    </button>
+                  </form>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </SidebarFooter>
       </Sidebar>
 
       {showCreateSpace && (

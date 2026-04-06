@@ -83,7 +83,7 @@ export async function requireManager() {
   return user;
 }
 
-export async function registerManager(email: string, password: string) {
+export async function registerManager(firstName: string, lastName: string, email: string, password: string) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     throw new Error("An account with this email already exists.");
@@ -93,6 +93,8 @@ export async function registerManager(email: string, password: string) {
 
   const user = await prisma.user.create({
     data: {
+      firstName,
+      lastName,
       email,
       passwordHash,
       role: UserRole.MANAGER,

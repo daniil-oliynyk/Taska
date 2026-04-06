@@ -14,6 +14,7 @@ type AuthCardProps = {
   footerLinkText: string;
   footerHref: Route;
   action: (formData: FormData) => Promise<void>;
+  showNameFields?: boolean;
 };
 
 export function AuthCard({
@@ -24,6 +25,7 @@ export function AuthCard({
   footerLinkText,
   footerHref,
   action,
+  showNameFields = false,
 }: AuthCardProps) {
   return (
     <Card className="w-full max-w-md border-border/80 bg-card/95 backdrop-blur">
@@ -33,6 +35,18 @@ export function AuthCard({
       </CardHeader>
       <CardContent>
         <form action={action} className="space-y-4">
+          {showNameFields ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input id="firstName" name="firstName" required placeholder="Jane" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input id="lastName" name="lastName" required placeholder="Doe" />
+              </div>
+            </div>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" required placeholder="manager@company.com" />

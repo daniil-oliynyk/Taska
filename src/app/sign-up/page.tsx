@@ -20,6 +20,7 @@ export default async function SignUpPage() {
         footerLinkText="Sign in"
         footerHref="/sign-in"
         action={signUpAction}
+        showNameFields
       />
     </main>
   );

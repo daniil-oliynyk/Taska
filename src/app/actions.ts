@@ -15,8 +15,15 @@ const authSchema = z.object({
   password: z.string().min(8),
 });
 
+const signUpSchema = authSchema.extend({
+  firstName: z.string().trim().min(1),
+  lastName: z.string().trim().min(1),
+});
+
 export async function signUpAction(formData: FormData) {
-  const parsed = authSchema.safeParse({
+  const parsed = signUpSchema.safeParse({
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -26,7 +33,7 @@ export async function signUpAction(formData: FormData) {
   }
 
   try {
-    await registerManager(parsed.data.email, parsed.data.password);
+    await registerManager(parsed.data.firstName, parsed.data.lastName, parsed.data.email, parsed.data.password);
   } catch {
     return;
   }

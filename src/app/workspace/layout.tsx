@@ -18,7 +18,15 @@ export default async function WorkspaceLayout({
 
   return (
     <SidebarProvider>
-      <AppSidebar teamSpaces={teamSpaces} />
+      <AppSidebar
+        teamSpaces={teamSpaces}
+        currentUser={{
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+        }}
+      />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/70 px-4">
           <SidebarTrigger className="-ml-1" />
