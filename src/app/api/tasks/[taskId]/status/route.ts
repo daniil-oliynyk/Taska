@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TaskStatus } from "@prisma/client";
 
-import { getCurrentUser } from "@/lib/auth";
+import { requireApiUser } from "@/lib/api-auth";
 import { canManageProject } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await context.params;
 
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, response } = await requireApiUser();
+  if (response) {
+    return response;
   }
 
   const body = (await request.json()) as { status?: TaskStatus; projectId?: string };

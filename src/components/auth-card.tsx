@@ -15,6 +15,7 @@ type AuthCardProps = {
   footerHref: Route;
   action: (formData: FormData) => Promise<void>;
   showNameFields?: boolean;
+  showRoleSelect?: boolean;
 };
 
 export function AuthCard({
@@ -26,6 +27,7 @@ export function AuthCard({
   footerHref,
   action,
   showNameFields = false,
+  showRoleSelect = false,
 }: AuthCardProps) {
   return (
     <Card className="w-full max-w-md border-border/80 bg-card/95 backdrop-blur">
@@ -47,9 +49,23 @@ export function AuthCard({
               </div>
             </div>
           ) : null}
+          {showRoleSelect ? (
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <select
+                id="role"
+                name="role"
+                defaultValue="MEMBER"
+                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="MEMBER">Member</option>
+                <option value="MANAGER">Manager</option>
+              </select>
+            </div>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" required placeholder="manager@company.com" />
+            <Input id="email" name="email" type="email" required placeholder="you@company.com" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>

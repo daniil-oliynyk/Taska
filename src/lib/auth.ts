@@ -74,6 +74,13 @@ export async function getCurrentUser() {
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
+  if (user.passwordChangeRequired) redirect("/reset-password");
+  return user;
+}
+
+export async function requireUserForPasswordReset() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/sign-in");
   return user;
 }
 
@@ -83,7 +90,14 @@ export async function requireManager() {
   return user;
 }
 
-export async function registerManager(firstName: string, lastName: string, email: string, password: string) {
+export async function registerUser(
+  firstName: string,
+  lastName: string,
+  email: string,
+  password: string,
+  role: UserRole,
+  passwordChangeRequired = false,
+) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     throw new Error("An account with this email already exists.");
@@ -97,7 +111,8 @@ export async function registerManager(firstName: string, lastName: string, email
       lastName,
       email,
       passwordHash,
-      role: UserRole.MANAGER,
+      role,
+      passwordChangeRequired,
     },
   });
 
@@ -105,15 +120,43 @@ export async function registerManager(firstName: string, lastName: string, email
   return user;
 }
 
-export async function loginManager(email: string, password: string) {
+export async function completePasswordReset(userId: string, nextPassword: string) {
+  const passwordHash = await hash(nextPassword, 10);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      passwordHash,
+      passwordChangeRequired: false,
+    },
+  });
+}
+
+export async function createMemberByManager(firstName: string, lastName: string, email: string, temporaryPassword: string) {
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    throw new Error("An account with this email already exists.");
+  }
+
+  const passwordHash = await hash(temporaryPassword, 10);
+
+  return prisma.user.create({
+    data: {
+      firstName,
+      lastName,
+      email,
+      passwordHash,
+      role: UserRole.MEMBER,
+      passwordChangeRequired: true,
+    },
+  });
+}
+
+export async function loginUser(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
     throw new Error("Invalid credentials.");
-  }
-
-  if (user.role !== UserRole.MANAGER) {
-    throw new Error("Only Manager accounts can sign in right now.");
   }
 
   const passwordOk = await compare(password, user.passwordHash);

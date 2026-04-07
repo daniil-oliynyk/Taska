@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, LayoutDashboard, Lock, LogOut, Plus, Search, Settings, UsersRound } from "lucide-react";
 
-import { createProjectAction, createTeamSpaceAction, signOutAction } from "@/app/actions";
+import { createMemberAccountAction, createProjectAction, createTeamSpaceAction, signOutAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -55,7 +55,9 @@ type CurrentUser = {
 
 export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[]; currentUser: CurrentUser }) {
   const pathname = usePathname();
+  const isManager = currentUser.role === "MANAGER";
   const [showCreateSpace, setShowCreateSpace] = useState(false);
+  const [showCreateMember, setShowCreateMember] = useState(false);
   const [actionMenuSpaceId, setActionMenuSpaceId] = useState<string | null>(null);
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [projectTeamSpaceId, setProjectTeamSpaceId] = useState("");
@@ -171,12 +173,14 @@ export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[
           <SidebarGroup>
             <div className="flex items-center justify-between">
               <SidebarGroupLabel>Team Spaces</SidebarGroupLabel>
-              <button
-                onClick={() => setShowCreateSpace(true)}
-                className="mr-2 flex size-5 items-center justify-center rounded-md text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground"
-              >
-                <Plus className="size-3.5" />
-              </button>
+              {isManager ? (
+                <button
+                  onClick={() => setShowCreateSpace(true)}
+                  className="mr-2 flex size-5 items-center justify-center rounded-md text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground"
+                >
+                  <Plus className="size-3.5" />
+                </button>
+              ) : null}
             </div>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -204,16 +208,18 @@ export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[
                             <span>{space.name}</span>
                           </div>
                         </SidebarMenuButton>
-                        <SidebarMenuAction
-                          ref={actionMenuSpaceId === space.id ? actionMenuButtonRef : undefined}
-                          aria-label={`Team Space actions for ${space.name}`}
-                          onClick={() =>
-                            setActionMenuSpaceId((prev) => (prev === space.id ? null : space.id))
-                          }
-                        >
-                          <Plus className="size-3.5" />
-                        </SidebarMenuAction>
-                        {actionMenuSpaceId === space.id && (
+                        {isManager ? (
+                          <SidebarMenuAction
+                            ref={actionMenuSpaceId === space.id ? actionMenuButtonRef : undefined}
+                            aria-label={`Team Space actions for ${space.name}`}
+                            onClick={() =>
+                              setActionMenuSpaceId((prev) => (prev === space.id ? null : space.id))
+                            }
+                          >
+                            <Plus className="size-3.5" />
+                          </SidebarMenuAction>
+                        ) : null}
+                        {isManager && actionMenuSpaceId === space.id && (
                           <div
                             ref={actionMenuPopoverRef}
                             className="absolute right-2 top-8 z-20 min-w-40 rounded-md border border-border bg-popover p-1 shadow-md"
@@ -301,13 +307,18 @@ export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[
                   ref={settingsPopoverRef}
                   className="absolute bottom-9 right-0 z-30 min-w-40 rounded-md border border-sidebar-border bg-popover p-1 shadow-md"
                 >
-                  <button
-                    type="button"
-                    onClick={() => setShowSettingsPopover(false)}
-                    className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    Profile Settings
-                  </button>
+                  {isManager ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSettingsPopover(false);
+                        setShowCreateMember(true);
+                      }}
+                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
+                      Create Member Account
+                    </button>
+                  ) : null}
                   <form
                     action={async () => {
                       setShowSettingsPopover(false);
@@ -355,6 +366,49 @@ export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[
                 Cancel
               </Button>
               <Button type="submit">Create Space</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      )}
+
+      {showCreateMember && (
+        <DialogContent onClose={() => setShowCreateMember(false)}>
+          <DialogHeader>
+            <DialogTitle>Create Member Account</DialogTitle>
+            <DialogDescription>
+              Managers can create a member account with a temporary password. Members must reset it on first sign-in.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            action={async (formData) => {
+              await createMemberAccountAction(formData);
+              setShowCreateMember(false);
+            }}
+            className="space-y-4"
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="member-first-name">First Name</Label>
+                <Input id="member-first-name" name="firstName" required placeholder="Jane" autoFocus />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="member-last-name">Last Name</Label>
+                <Input id="member-last-name" name="lastName" required placeholder="Doe" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="member-email">Email</Label>
+              <Input id="member-email" name="email" type="email" required placeholder="member@company.com" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="member-temp-password">Temporary Password</Label>
+              <Input id="member-temp-password" name="temporaryPassword" type="password" required minLength={8} />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setShowCreateMember(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create Member</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -9,12 +9,12 @@ datasource db {
 
 enum UserRole {
   MANAGER
-  WORKER
+  MEMBER
 }
 
 enum TeamRole {
   MANAGER
-  WORKER
+  MEMBER
 }
 
 enum ProjectVisibility {
@@ -47,6 +47,7 @@ model User {
   email          String           @unique
   passwordHash   String
   role           UserRole
+  passwordChangeRequired Boolean  @default(false)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   sessions       Session[]

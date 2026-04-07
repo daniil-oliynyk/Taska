@@ -7,5 +7,9 @@ export default async function HomePage() {
     redirect("/sign-in");
   }
 
+  if (user.passwordChangeRequired) {
+    redirect("/reset-password");
+  }
+
   redirect("/workspace");
 }

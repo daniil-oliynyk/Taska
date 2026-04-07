@@ -2,10 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ProjectVisibility, TaskPriority, TaskStatus, TeamRole } from "@prisma/client";
+import { ProjectVisibility, TaskPriority, TaskStatus, TeamRole, UserRole } from "@prisma/client";
 import { z } from "zod";
 
-import { clearSession, loginManager, registerManager, requireManager, requireUser } from "@/lib/auth";
+import {
+  clearSession,
+  completePasswordReset,
+  createMemberByManager,
+  loginUser,
+  registerUser,
+  requireManager,
+  requireUser,
+  requireUserForPasswordReset,
+} from "@/lib/auth";
 import { canManageProject, canViewProject } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { parseDurationToMinutes } from "@/lib/utils";
@@ -18,6 +27,18 @@ const authSchema = z.object({
 const signUpSchema = authSchema.extend({
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),
+  role: z.nativeEnum(UserRole),
+});
+
+const managerCreateMemberSchema = z.object({
+  firstName: z.string().trim().min(1),
+  lastName: z.string().trim().min(1),
+  email: z.string().email(),
+  temporaryPassword: z.string().min(8),
+});
+
+const resetPasswordSchema = z.object({
+  nextPassword: z.string().min(8),
 });
 
 export async function signUpAction(formData: FormData) {
@@ -26,6 +47,7 @@ export async function signUpAction(formData: FormData) {
     lastName: formData.get("lastName"),
     email: formData.get("email"),
     password: formData.get("password"),
+    role: formData.get("role"),
   });
 
   if (!parsed.success) {
@@ -33,7 +55,13 @@ export async function signUpAction(formData: FormData) {
   }
 
   try {
-    await registerManager(parsed.data.firstName, parsed.data.lastName, parsed.data.email, parsed.data.password);
+    await registerUser(
+      parsed.data.firstName,
+      parsed.data.lastName,
+      parsed.data.email,
+      parsed.data.password,
+      parsed.data.role,
+    );
   } catch {
     return;
   }
@@ -52,7 +80,10 @@ export async function signInAction(formData: FormData) {
   }
 
   try {
-    await loginManager(parsed.data.email, parsed.data.password);
+    const user = await loginUser(parsed.data.email, parsed.data.password);
+    if (user.passwordChangeRequired) {
+      redirect("/reset-password");
+    }
   } catch {
     return;
   }
@@ -63,6 +94,49 @@ export async function signInAction(formData: FormData) {
 export async function signOutAction() {
   await clearSession();
   redirect("/sign-in");
+}
+
+export async function createMemberAccountAction(formData: FormData) {
+  await requireManager();
+
+  const parsed = managerCreateMemberSchema.safeParse({
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
+    email: formData.get("email"),
+    temporaryPassword: formData.get("temporaryPassword"),
+  });
+
+  if (!parsed.success) {
+    return;
+  }
+
+  try {
+    await createMemberByManager(
+      parsed.data.firstName,
+      parsed.data.lastName,
+      parsed.data.email,
+      parsed.data.temporaryPassword,
+    );
+  } catch {
+    return;
+  }
+
+  revalidatePath("/workspace");
+}
+
+export async function resetPasswordAction(formData: FormData) {
+  const user = await requireUserForPasswordReset();
+
+  const parsed = resetPasswordSchema.safeParse({
+    nextPassword: formData.get("nextPassword"),
+  });
+
+  if (!parsed.success) {
+    return;
+  }
+
+  await completePasswordReset(user.id, parsed.data.nextPassword);
+  redirect("/workspace");
 }
 
 export async function createTeamSpaceAction(formData: FormData) {
