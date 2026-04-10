@@ -220,22 +220,25 @@ export function AppSidebar({ teamSpaces, currentUser }: { teamSpaces: TeamSpace[
                     <Collapsible key={space.id} defaultOpen={isSpaceActive} className="group/collapsible">
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isSpaceActive && !pathname.includes("/project/")} className="pr-8">
-                          <div className="flex w-full items-center gap-2">
+                          <Link href={spaceHref as Route}>
                             <div className="relative size-4 shrink-0">
                               <UsersRound className="absolute inset-0 size-4 transition-opacity duration-150 group-hover/menu-item:opacity-0" />
-                              <CollapsibleTrigger asChild>
-                                <button
-                                  type="button"
-                                  aria-label={`Toggle ${space.name}`}
-                                  className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover/menu-item:opacity-100 pointer-events-none group-hover/menu-item:pointer-events-auto"
-                                >
-                                  <ChevronDown className="size-4 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
-                                </button>
-                              </CollapsibleTrigger>
                             </div>
                             <span>{space.name}</span>
-                          </div>
+                          </Link>
                         </SidebarMenuButton>
+                        <CollapsibleTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label={`Toggle ${space.name}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                            }}
+                            className="absolute left-1 top-1 z-20 flex size-6 items-center justify-center opacity-0 transition-opacity duration-150 group-hover/menu-item:opacity-100"
+                          >
+                            <ChevronDown className="size-4 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+                          </button>
+                        </CollapsibleTrigger>
                         {isManager ? (
                           <SidebarMenuAction
                             ref={actionMenuSpaceId === space.id ? actionMenuButtonRef : undefined}
