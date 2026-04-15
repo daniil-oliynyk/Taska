@@ -4,7 +4,7 @@
 
 # Taska ✨
 
-Taska is a lightweight, dark-mode, kanban-first project management app inspired by Jira/ClickUp workflows, built for teams that want clear ownership, scoped visibility, and fast task execution.
+Taska is a lightweight, kanban-first project management app inspired by Jira/ClickUp workflows, built for teams that want clear ownership, scoped visibility, and fast task execution.
 
 ## 📸 Screenshots
 
