@@ -107,7 +107,5 @@ public/               # Static assets (logo, screenshots)
 ```
 
 ## 📝 Notes
-
-- The current repository/package naming may still show `jira-lite-saas`; the product name is `Taska`.
-- Realtime collaboration is currently refresh-based.
+- This was heavily AI coded, just wanted to see what it could do when not monitored.
 - The outbox/event pattern is in place for future worker/realtime integrations.
